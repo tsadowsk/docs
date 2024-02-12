@@ -80,7 +80,302 @@ git commit values-global.yaml
 git push origin my-branch
 ----
 
+. Prepare and build Vault docker image and convert it to SGX using Gramine Shielded Containers (gsc).
+
 . Deploy the pattern by running `./pattern.sh make install` or by using the link:/infrastructure/using-validated-pattern-operator/[Validated Patterns Operator] - both methods are described below.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Prerequisites:
+
+Gramine Shielded Containres application requires a machine with the same OS as input converted image in order to create SGX convered image.
+In this case it would be Red Hat Enterprise Linux 8.8
+This machine doesn't have to have SGX feature enabled becuase it is used for conversion process only.
+
+
+
+
+
+mkdir vault
+
+cat Dockerfile-vault-no-docker-entrypoint-and-dev
+
+
+Create modified Vault docker file which will be input for SGX conversion process:
+FROM registry.connect.redhat.com/hashicorp/vault:1.15.3-ubi
+ENTRYPOINT ["vault"]
+
+Build the Vault docker image:
+docker build -t seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx -f Dockerfile-vault-no-docker-entrypoint-and-dev .
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------
+
+
+Install Prerequisites according to:
+https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites
+
+
+
+git clone https://github.com/gramineproject/gsc.git
+
+cs gsc
+
+
+
+
+
+---
+
+https://gramine.readthedocs.io/projects/gsc/en/latest/#example
+
+
+
+
+
+
+
+
+cp config.yaml.template config.yaml
+
+# Specify the OS distro that is used to build Gramine, i.e., the distro from where the Gramine build
+# gets all tools and dependencies from. This distro should match the distro underlying the
+# application's Docker image; otherwise the results may be unpredictable (if you specify `"auto"`,
+# which is recommended, you don't need to worry about the mismatch).
+#
+# Currently supported distros are:
+# - ubuntu:20.04, ubuntu:21.04, ubuntu:22.04, ubuntu:23.04
+# - debian:10, debian:11, debian:12
+# - centos:8
+# - redhat/ubi8:8.8
+# - redhat/ubi8-minimal:8.8
+
+# If Distro is set to "auto", GSC detects the distro automatically by examining the supplied
+# Docker image. Alternatively, Distro can be set to one of the supported distros mentioned above.
+Distro: "auto"
+
+# If the image has a specific registry, define it here.
+# Empty by default; example value: "registry.access.redhat.com/ubi8".
+Registry: ""
+
+# If you're using your own fork and branch of Gramine, specify the GitHub link and the branch name
+# below; typically, you want to keep the default values though.
+#
+# It is also possible to specify the prebuilt Gramine Docker image (that was built previously via
+# the `gsc build-gramine` command). For this, remove Repository and Branch and instead write:
+#   Image:      "<prebuilt Gramine Docker image>"
+#
+# GSC releases are guaranteed to work with corresponding Gramine releases (and GSC `master`
+# branch is guaranteed to work with current Gramine `master` branch).
+Gramine:
+    Repository: "https://github.com/gramineproject/gramine.git"
+    Branch:     "master"
+
+# Specify the Intel SGX driver installed on your machine (more specifically, on the machine where
+# the graminized Docker container will run); there are several variants of the SGX driver:
+#
+#   - upstream (in-kernel) driver: use empty values like below
+#         Repository: ""
+#         Branch:     ""
+#
+#   - DCAP out-of-tree driver: same as above, use empty values
+#         Repository: ""
+#         Branch:     ""
+#
+#   - legacy out-of-tree driver: use something like the below values, but adjust the branch name
+#         Repository: "https://github.com/01org/linux-sgx-driver.git"
+#         Branch:     "sgx_driver_1.9"
+#
+SGXDriver:
+    Repository: ""
+    Branch:     ""
+
+
+---
+
+create:
+
+vault.manifest
+
+sgx.enclave_size = "2G"
+#sgx.max_threads = 16
+sgx.max_threads = 512
+
+sgx.allowed_files = [
+  "file:/vault/",
+  "file:/vault/data/",
+  "file:/vault/data/core/",
+  "file:/vault/data/core/_seal-config",
+  "file:/vault/config/",
+  "file:/home/vault/",
+  "file:/etc/security/pam_env.conf",
+  "file:/etc/security/limits.conf",
+  "file:/var/log/lastlog",
+]
+
+sgx.debug = true
+
+loader.uid = 100
+loader.gid = 107
+
+fs.mounts = [
+    { path = "/vault/data", uri = "file:/vault/data", type = "encrypted", key_name = "default" },
+]
+fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"
+
+loader.insecure__use_host_env = true
+loader.insecure__use_cmdline_argv = true
+
+
+---
+
+
+openssl genrsa -3 -out enclave-key.pem 3072
+
+
+
+
+./gsc build --insecure-args seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx vault.manifest     <- SECURE ARGS ARE IN THE EXAMPLE TOO
+
+
+
+
+(Optional) To convert Vault image behind proxy use below command line:
+./gsc build --insecure-args \
+       --build-arg no_proxy=10.105.195.132/24,.intel.com,localhost,127.0.0.1,.svc,.svc.cluster.local,.nip.io \
+       --build-arg https_proxy=http://proxy-fm.intel.com:911 \
+       --build-arg NO_PROXY=10.105.195.132/24,.intel.com,localhost,127.0.0.1,.svc,.svc.cluster.local,.nip.io \
+       --build-arg HTTPS_PROXY=http://proxy-fm.intel.com:911 \
+       --build-arg HTTP_PROXY=http://proxy-fm.intel.com:911 \
+       --build-arg http_proxy=http://proxy-fm.intel.com:911 \
+       seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx vault.manifest
+
+HOW TO GENERATE PEM KEY FILE?????
+
+
+
+./gsc sign-image seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx enclave-key.pem
+
+docker tag gsc-seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
+docker login -u=seahorse910 docker.io 
+docker push seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine  
+
+
+
+
+
+
+docker.io/seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[id="biuld-docker-image-and-convert-to-sgx"]
+== Prepare Vault docker image and convert to SGX
+
+To deploy the cluster by using the `pattern.sh` file, complete the following steps:
+
+. Login to your cluster by running the following command:
++
+[source,terminal]
+----
+oc login
+----
++
+Optional: Set the `KUBECONFIG` variable for the `kubeconfig` file path:
++
+[source,terminal]
+----
+export KUBECONFIG=~/<path_to_kubeconfig>
+----
+
+. Deploy the pattern to your cluster. Run the following command:
++
+[source,terminal]
+----
+./pattern.sh make install
+----
+
+Verify that the Operators have been installed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 [id="deploying-cluster-using-patternsh-file"]
 == Deploying the cluster by using the pattern.sh file

@@ -190,3 +190,10 @@ image::multicloud-gitops-amx/amx-app-log.png[Logs from amx-app pod]
 
 * link:mcg-amx-getting-started[Deploy the management hub] using Helm.
 * Add a managed cluster to link:mcg-amx-managed-cluster[deploy the managed cluster piece using ACM].
+
+
+
+
+
+
+asdf
