@@ -171,6 +171,17 @@ View and download all of the diagrams above from the link:https://www.redhat.com
 [id="extension-of-mcg"]
 == {sgx-mcg-pattern}
 
+
+
+
+
+
+
+
+
+
+
+
 The basic {mcg-pattern} has been extended to highlight the *{intel-5th-gen-xeon-processors}* capabilities, offering developers a streamlined pathway to accelerate their workloads through the integration of cutting-edge *{intel-sgx}*, fostering efficiency and performance optimization in AI workloads.
 
 The basic pattern has been extended by the AI application named `sgx-app`. It runs Deep Interest Evolution Network (DIEN) inference using the Intel-optimized TensorFlow and measures its accuracy. DIEN is a machine learning model used in the field of recommender systems, particularly in the domain of personalized content recommendation.
@@ -185,6 +196,15 @@ An `sgx-app` use persistent volume claim to download and prepare dataset. When t
 //figure 7 originally
 .Logs from `sgx-app` pod
 image::multicloud-gitops-sgx/sgx-app-log.png[Logs from sgx-app pod]
+
+
+
+
+
+
+
+
+
 
 [id="next-steps_mcg-index"]
 == Next steps

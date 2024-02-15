@@ -106,9 +106,8 @@ git push origin my-branch
 
 
 
-
-
-
+[id="biuld-docker-image-and-convert-to-sgx"]
+== Prepare Vault docker image and convert to SGX
 
 Prerequisites:
 
@@ -120,56 +119,54 @@ This machine doesn't have to have SGX feature enabled becuase it is used for con
 
 
 
-mkdir vault
 
-cat Dockerfile-vault-no-docker-entrypoint-and-dev
-
+. Login to your cluster by running the following command:
 
 Create modified Vault docker file which will be input for SGX conversion process:
++
+[source,terminal]
+----
+mkdir vault
+cd vault
+
+cat << EOF >
 FROM registry.connect.redhat.com/hashicorp/vault:1.15.3-ubi
 ENTRYPOINT ["vault"]
+EOF
 
-Build the Vault docker image:
-docker build -t seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx -f Dockerfile-vault-no-docker-entrypoint-and-dev .
-
-
-
-
+docker build -t vault-without-sgx .
+----
++
 
 
-
+Install Gramine Shielded Containers prerequisites according to [GSC documentation](https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites).
 
 
 
---------------------------------------------------------------------
 
-
-Install Prerequisites according to:
-https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites
-
-
-
+Clone GSC repo:
++
+[source,terminal]
+----
 git clone https://github.com/gramineproject/gsc.git
+----
 
+
+
+
+. Copy config file from sample template provided with GSC:
++
+[source,terminal]
+----
 cs gsc
-
-
-
-
-
----
-
-https://gramine.readthedocs.io/projects/gsc/en/latest/#example
-
-
-
-
-
-
-
-
 cp config.yaml.template config.yaml
+----
+This config file can be adjusted as needed.
 
+Sample config file below:
++
+[source,terminal]
+----
 # Specify the OS distro that is used to build Gramine, i.e., the distro from where the Gramine build
 # gets all tools and dependencies from. This distro should match the distro underlying the
 # application's Docker image; otherwise the results may be unpredictable (if you specify `"auto"`,
@@ -221,14 +218,13 @@ Gramine:
 SGXDriver:
     Repository: ""
     Branch:     ""
+----
 
-
----
-
-create:
-
-vault.manifest
-
+Create manifest file which contains conversion options, sample below:
++
+[source,terminal]
+----
+cat << EOF > vault.manifest
 sgx.enclave_size = "2G"
 #sgx.max_threads = 16
 sgx.max_threads = 512
@@ -251,44 +247,68 @@ loader.uid = 100
 loader.gid = 107
 
 fs.mounts = [
-    { path = "/vault/data", uri = "file:/vault/data", type = "encrypted", key_name = "default" },
+  { path = "/vault/data", uri = "file:/vault/data", type = "encrypted", key_name = "default" },
 ]
-fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"
+fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"                                         <---- WHAT ABOUT IT???? 
 
 loader.insecure__use_host_env = true
 loader.insecure__use_cmdline_argv = true
+EOF
+----
 
 
----
 
 
+
+https://gramine.readthedocs.io/projects/gsc/en/latest/#example
+
+
+
+
+
+
+
+Generate RSA key:
+
++
+[source,terminal]
+----
 openssl genrsa -3 -out enclave-key.pem 3072
+----
 
 
 
 
-./gsc build --insecure-args seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx vault.manifest     <- SECURE ARGS ARE IN THE EXAMPLE TOO
++
+[source,terminal]
+----
+./gsc build --insecure-args vault-without-sgx vault.manifest
+----
 
 
 
 
-(Optional) To convert Vault image behind proxy use below command line:
+Optional: To convert Vault image behind proxy use below command line:
++
+[source,terminal]
+----
 ./gsc build --insecure-args \
-       --build-arg no_proxy=10.105.195.132/24,.intel.com,localhost,127.0.0.1,.svc,.svc.cluster.local,.nip.io \
-       --build-arg https_proxy=http://proxy-fm.intel.com:911 \
-       --build-arg NO_PROXY=10.105.195.132/24,.intel.com,localhost,127.0.0.1,.svc,.svc.cluster.local,.nip.io \
-       --build-arg HTTPS_PROXY=http://proxy-fm.intel.com:911 \
-       --build-arg HTTP_PROXY=http://proxy-fm.intel.com:911 \
-       --build-arg http_proxy=http://proxy-fm.intel.com:911 \
-       seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx vault.manifest
+       --build-arg http_proxy=<HTTP_PROXY> \
+       --build-arg https_proxy=<HTTP_PROXY> \
+       --build-arg no_proxy=<NO_PROXY> \
+       --build-arg HTTP_PROXY=<HTTP_PROXY> \
+       --build-arg HTTPS_PROXY=<HTTPS_PROXY> \
+       --build-arg NO_PROXY=<NO_PROXY> \
+       vault-without-sgx vault.manifest
+---
+where `<HTTPS_PROXY>`, `<HTTP_PROXY>` and `<NO_PROXY>` has to be set appropriately according to your organization proxy settings. 
 
-HOW TO GENERATE PEM KEY FILE?????
 
 
 
-./gsc sign-image seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx enclave-key.pem
+./gsc sign-image vault-without-sgx enclave-key.pem
 
-docker tag gsc-seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-no-sgx seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
+docker tag gsc-vault-without-sgx seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
 docker login -u=seahorse910 docker.io 
 docker push seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine  
 
@@ -325,33 +345,6 @@ docker.io/seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
 
 
 
-[id="biuld-docker-image-and-convert-to-sgx"]
-== Prepare Vault docker image and convert to SGX
-
-To deploy the cluster by using the `pattern.sh` file, complete the following steps:
-
-. Login to your cluster by running the following command:
-+
-[source,terminal]
-----
-oc login
-----
-+
-Optional: Set the `KUBECONFIG` variable for the `kubeconfig` file path:
-+
-[source,terminal]
-----
-export KUBECONFIG=~/<path_to_kubeconfig>
-----
-
-. Deploy the pattern to your cluster. Run the following command:
-+
-[source,terminal]
-----
-./pattern.sh make install
-----
-
-Verify that the Operators have been installed.
 
 
 
