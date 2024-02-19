@@ -84,88 +84,63 @@ git push origin my-branch
 
 . Deploy the pattern by running `./pattern.sh make install` or by using the link:/infrastructure/using-validated-pattern-operator/[Validated Patterns Operator] - both methods are described below.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [id="biuld-docker-image-and-convert-to-sgx"]
 == Prepare Vault docker image and convert to SGX
 
-Prerequisites:
+.Prerequisites:
 
-Gramine Shielded Containres application requires a machine with the same OS as input converted image in order to create SGX convered image.
-In this case it would be Red Hat Enterprise Linux 8.8
-This machine doesn't have to have SGX feature enabled becuase it is used for conversion process only.
+Gramine Shielded Containres application requires a machine with the same OS as input converted image in order to create SGX convered image. In this case it would be Red Hat Enterprise Linux 8.8. +
+This machine doesn't have to have SGX feature enabled becuase it is used for conversion purposes only.
 
+.Procedure
 
-
-
-
-
-. Login to your cluster by running the following command:
-
-Create modified Vault docker file which will be input for SGX conversion process:
+. Create modified Vault docker file which will be input for SGX conversion process: +
+First, create new directorory and change it:
 +
 [source,terminal]
 ----
-mkdir vault
-cd vault
+$ mkdir vault
+----
 
-cat << EOF >
++
+[source,terminal]
+----
+$ cd vault
+----
+Create the `Dockerfile` with below content:
++
+[source,dockerfile]
+----
 FROM registry.connect.redhat.com/hashicorp/vault:1.15.3-ubi
 ENTRYPOINT ["vault"]
-EOF
-
-docker build -t vault-without-sgx .
 ----
-+
-
-
-Install Gramine Shielded Containers prerequisites according to [GSC documentation](https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites).
-
-
-
-
-Clone GSC repo:
+Start builing process:
 +
 [source,terminal]
 ----
-git clone https://github.com/gramineproject/gsc.git
+$ docker build -t vault-without-sgx .
 ----
 
+. Install Gramine Shielded Containers prerequisites according to https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites[GSC documentation]
 
-
+. Clone GSC repo:
++
+[source,terminal]
+----
+$ git clone https://github.com/gramineproject/gsc.git
+----
 
 . Copy config file from sample template provided with GSC:
 +
 [source,terminal]
 ----
-cs gsc
-cp config.yaml.template config.yaml
+$ cd gsc
+$ cp config.yaml.template config.yaml
 ----
-This config file can be adjusted as needed.
-
-Sample config file below:
+This config file can be adjusted as needed +
+Sample config below:
 +
-[source,terminal]
+[source,yaml]
 ----
 # Specify the OS distro that is used to build Gramine, i.e., the distro from where the Gramine build
 # gets all tools and dependencies from. This distro should match the distro underlying the
@@ -220,13 +195,11 @@ SGXDriver:
     Branch:     ""
 ----
 
-Create manifest file which contains conversion options, sample below:
+. Create `vault.manifest`  file which contains conversion configuration:
 +
-[source,terminal]
+[source,ini]
 ----
-cat << EOF > vault.manifest
 sgx.enclave_size = "2G"
-#sgx.max_threads = 16
 sgx.max_threads = 512
 
 sgx.allowed_files = [
@@ -249,126 +222,64 @@ loader.gid = 107
 fs.mounts = [
   { path = "/vault/data", uri = "file:/vault/data", type = "encrypted", key_name = "default" },
 ]
-fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"                                         <---- WHAT ABOUT IT???? 
+fs.insecure__keys.default = "ffeeddccbbaa99887766554433221100"
 
 loader.insecure__use_host_env = true
 loader.insecure__use_cmdline_argv = true
-EOF
 ----
 
-
-
-
-
-https://gramine.readthedocs.io/projects/gsc/en/latest/#example
-
-
-
-
-
-
-
-Generate RSA key:
-
+. Generate the signing key:
 +
 [source,terminal]
 ----
-openssl genrsa -3 -out enclave-key.pem 3072
+$ openssl genrsa -3 -out enclave-key.pem 3072
 ----
 
-
-
-
+. Build secure image using `gsc` command (use when not behind corporate proxy):
 +
 [source,terminal]
 ----
-./gsc build --insecure-args vault-without-sgx vault.manifest
+$ ./gsc build --insecure-args vault-without-sgx vault.manifest
 ----
 
+. (Optional) If machine, which is used for conversion process is behind corporate proxy, then use this command instead of above one:
++
+[source,bash]
+----
+$ ./gsc build --insecure-args \
+    --build-arg http_proxy=<HTTP_PROXY> \
+    --build-arg https_proxy=<HTTP_PROXY> \
+    --build-arg no_proxy=<NO_PROXY> \
+    --build-arg HTTP_PROXY=<HTTP_PROXY> \
+    --build-arg HTTPS_PROXY=<HTTPS_PROXY> \
+    --build-arg NO_PROXY=<NO_PROXY> \
+    vault-without-sgx vault.manifest
+----
+`<HTTPS_PROXY>`, `<HTTP_PROXY>` and `<NO_PROXY>` has to be set appropriately according to your organization proxy settings. 
 
-
-
-Optional: To convert Vault image behind proxy use below command line:
+. Sign the graminized docker image:
 +
 [source,terminal]
 ----
-./gsc build --insecure-args \
-       --build-arg http_proxy=<HTTP_PROXY> \
-       --build-arg https_proxy=<HTTP_PROXY> \
-       --build-arg no_proxy=<NO_PROXY> \
-       --build-arg HTTP_PROXY=<HTTP_PROXY> \
-       --build-arg HTTPS_PROXY=<HTTPS_PROXY> \
-       --build-arg NO_PROXY=<NO_PROXY> \
-       vault-without-sgx vault.manifest
----
-where `<HTTPS_PROXY>`, `<HTTP_PROXY>` and `<NO_PROXY>` has to be set appropriately according to your organization proxy settings. 
+$ ./gsc sign-image vault-without-sgx enclave-key.pem
+----
 
-
-
-
-./gsc sign-image vault-without-sgx enclave-key.pem
-
-docker tag gsc-vault-without-sgx seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
-docker login -u=seahorse910 docker.io 
-docker push seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine  
-
-
-
-
-
-
-docker.io/seahorse910/sgx-gramine:rh-vault-no-docker-entrypoint-sgx-gramine
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+. (Optional) Push secured container image to registry which will be available to OpenShift:  
+If needed, login to image registry server: 
++
+[source,terminal]
+----
+$ docker login -u=<USER_NAME> docker.io 
+----
+`<USER_NAME>` is login of image registry server
+Tag secured container image with appropriate tag and push the image to a registry:
++
+[source,terminal]
+----
+$ docker tag gsc-vault-without-sgx <DESTINATION_IMAGE_NAME>
+$ docker push <DESTINATION_IMAGE_NAME>
+----
+`<DESTINATION_IMAGE_NAME` is name of the image in a registry
 
 [id="deploying-cluster-using-patternsh-file"]
 == Deploying the cluster by using the pattern.sh file
