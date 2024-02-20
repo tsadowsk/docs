@@ -27,7 +27,7 @@
 :ie: Industrial Edge
 :mcg-pattern: Multicloud GitOps pattern
 :amx-mcg-pattern: Intel AMX accelerated Multicloud GitOps pattern
-:sgx-mcg-pattern: Intel SGX accelerated Vault in Multicloud GitOps pattern
+:sgx-mcg-pattern: Intel SGX accelerated Vault for Multicloud GitOps pattern
 :mcg: multicloud GitOps
 :med-pattern: Medical Diagnosis pattern
 :amx-med-pattern: Intel AMX accelerated Medical Diagnosis pattern

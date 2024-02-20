@@ -89,7 +89,7 @@ git push origin my-branch
 
 .Prerequisites:
 
-Gramine Shielded Containres application requires a machine with the same OS as input converted image in order to create SGX convered image. In this case it would be Red Hat Enterprise Linux 8.8. +
+Gramine Shielded Containers application requires a machine with the same OS as input converted image in order to create SGX convered image. In this case it would be Red Hat Enterprise Linux 8.8. +
 This machine doesn't have to have SGX feature enabled becuase it is used for conversion purposes only.
 
 .Procedure
@@ -255,7 +255,7 @@ $ ./gsc build --insecure-args \
     --build-arg NO_PROXY=<NO_PROXY> \
     vault-without-sgx vault.manifest
 ----
-`<HTTPS_PROXY>`, `<HTTP_PROXY>` and `<NO_PROXY>` has to be set appropriately according to your organization proxy settings. 
+`<HTTPS_PROXY>`, `<HTTP_PROXY>` and `<NO_PROXY>` has to be set appropriately according to your organization proxy settings.
 
 . Sign the graminized docker image:
 +
@@ -264,12 +264,12 @@ $ ./gsc build --insecure-args \
 $ ./gsc sign-image vault-without-sgx enclave-key.pem
 ----
 
-. (Optional) Push secured container image to registry which will be available to OpenShift:  
-If needed, login to image registry server: 
+. (Optional) Push secured container image to registry which will be available to OpenShift:
+If needed, login to image registry server:
 +
 [source,terminal]
 ----
-$ docker login -u=<USER_NAME> docker.io 
+$ docker login -u=<USER_NAME> docker.io
 ----
 `<USER_NAME>` is login of image registry server
 Tag secured container image with appropriate tag and push the image to a registry:
@@ -310,10 +310,11 @@ export KUBECONFIG=~/<path_to_kubeconfig>
 Verify that the Operators have been installed.
 
 . To verify, in the *OpenShift Container Platform* web console, navigate to *Operators → Installed Operators* page.
-. Check that the following Operators are installed with  `Succeeded` status (Figure 1): 
-* *Advanced Cluster Management for Kubernetes* 
-* *multicluster engine for Kubernetes* 
-* *Node Feature Discovery Operator* 
+. Check that the following Operators are installed with  `Succeeded` status (Figure 1):
+* *Advanced Cluster Management for Kubernetes*
+* *Intel Device Plugins Operator*
+* *multicluster engine for Kubernetes*
+* *Node Feature Discovery Operator*
 * *Red Hat Openshift GitOps*
 * *Validated Patterns Operator*
 +
@@ -355,10 +356,11 @@ image::multicloud-gitops-sgx/sgx-create-pattern.png[Create pattern Multicloud Gi
 Verify that the rest of Operators have been installed:
 
 . To verify, in the *OpenShift Container Platform* web console, navigate to *Operators → Installed Operators* page.
-. Check that the following Operators are installed with  `Succeeded` status (Figure 1): 
-* *Advanced Cluster Management for Kubernetes* 
-* *multicluster engine for Kubernetes* 
-* *Node Feature Discovery Operator* 
+. Check that the following Operators are installed with  `Succeeded` status (Figure 1):
+* *Advanced Cluster Management for Kubernetes*
+* *Intel Device Plugins Operator*
+* *multicluster engine for Kubernetes*
+* *Node Feature Discovery Operator*
 * *Red Hat Openshift GitOps*
 
 Add a secret for `config-demo` application (from _values-secret-multicloud-gitops.yaml_) to *Vault* manually:
@@ -401,7 +403,7 @@ Go to the Hub ArgoCD and verify that all applications are synchronized. The URL 
 
 [source,terminal]
 ----
-oc -n multicloud-gitops-sgx-hub get route hub-gitops-server -ojsonpath='{.spec.host}'
+oc -n multicloud-gitops-intel-hub get route hub-gitops-server -ojsonpath='{.spec.host}'
 ----
 
 All applications should be `Healthy` and `Synced`:
