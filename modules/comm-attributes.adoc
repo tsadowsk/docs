@@ -49,6 +49,9 @@
 :intel-5th-gen-xeon: 5th Generation Intel Xeon
 :intel-5th-gen-xeon-processors: 5th Generation Intel Xeon Scalable Processors
 :intel-5th-gen-xeon-sgx: 5th Gen Intel Xeon Scalable processors with Intel Security Guard Extensions (Intel SGX)
+//Gramine Shielded Containers
+:gramine: GSC
+:gramine-full: Gramine Shielded Containers
 //Operators
 :validated-patterns-op: Validated Patterns Operator
 :grafana-op: Grafana Operator
