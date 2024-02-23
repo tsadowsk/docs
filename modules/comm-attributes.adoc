@@ -26,6 +26,7 @@
 :ie-pattern: Industrial Edge pattern
 :ie: Industrial Edge
 :mcg-pattern: Multicloud GitOps pattern
+:mcg-sgx-hello-world-pattern: Intel SGX secured Multicloud GitOps pattern
 :amx-mcg-pattern: Intel AMX accelerated Multicloud GitOps pattern
 :sgx-mcg-pattern: Intel SGX accelerated Vault for Multicloud GitOps pattern
 :mcg: multicloud GitOps
