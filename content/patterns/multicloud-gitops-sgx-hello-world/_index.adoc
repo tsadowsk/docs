@@ -1,5 +1,5 @@
 ---
-title: Intel SGX secured Multicloud GitOps
+title: Intel SGX protected Multicloud GitOps
 date: 2024-02-20
 validated: false
 summary: This is an extension of Multicloud GitOps pattern with additional application using Intel SGX.
@@ -178,7 +178,7 @@ View and download all of the diagrams above from the link:https://www.redhat.com
 [id="extension-of-mcg"]
 == {mcg-sgx-hello-world-pattern}
 
-The basic {mcg-pattern} has been extended to highlight the *{intel-5th-gen-xeon-processors}* capabilities, offering developers {intel-sgx} as a streamlined pathway to protect data in use against threats with isolation, encryption and attestation while also allowing users to maintain control of and use of their data.
+The basic {mcg-pattern} has been extended to highlight the *{intel-5th-gen-xeon-processors}* capabilities, offering developers {intel-sgx} as a streamlined pathway to protect data in use against threats with isolation, encryption and attestation while also allowing users to maintain control and use their data.
 
 The application which has been added to the basic pattern is named `hello-world-sgx`. It is simple Python application that runs securely inside SGX enclave. SGX enclave is encrypted memory, which prevents unauthorized access from other containers running on the same host or even some host processes.
 
@@ -186,11 +186,11 @@ The sample application uses image converted with Gramine Shielded Containers (GS
 
 Since the `hello-world-sgx` application must be running on the node with CPU supporting {intel-sgx}, Node Feature Discovery Operator (NFD) and Intel Device Plugins Operator (IDP) are deployed as a part of this pattern.
 
-NFD manages the detection of hardware features and configuration in an OpenShift Container Platform cluster. It labels the nodes with hardware-specific information. It is requirement for IDP installation. IDP advertises Intel-specific hardware resources to the kubelet.
+NFD manages the detection of hardware features and configuration in an OpenShift Container Platform cluster. It labels the nodes with hardware-specific information. It is a requirement for IDP installation. IDP provides resources which are the user interface to claim and consume the hardware feature by user pods and also advertises Intel-specific hardware resources to the kubelet.
 
-In the logs of `hello-world-sgx` pod there is information that "Gramine is staring" and it executes the application by printing "HelloWorld!".
+In the logs of `hello-world-sgx` pod there is information that "Gramine is starting" and it executes the application by printing "HelloWorld!".
 
-This pattern demonstrates basic capabilities of running docker applications inside SGX enclaves. Based on this pattern other applications can be secured with SGX and Gramine Shielded containers in similar way as presented here. 
+This pattern demonstrates basic capabilities of running docker applications inside SGX enclaves. Based on this pattern other applications can be secured with SGX and Gramine Shielded Containers in similar way as presented here. 
 
 //figure 7 originally
 .Logs from `hello-world-sgx` pod

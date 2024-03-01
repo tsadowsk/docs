@@ -20,10 +20,9 @@ include::modules/comm-attributes.adoc[]
  ** The cluster must have a dynamic `StorageClass` to provision `PersistentVolumes`.
  ** link:../../multicloud-gitops-sgx-hello-world/mcg-sgx-hello-world-cluster-sizing[Cluster sizing] requirements.
 * Optional: A second OpenShift cluster for multicloud demonstration.
-* {intel-sgx} enabled in BIOS (Basic Input Output System) on workers machines - specific steps depends on platform.
-//Replaced git and podman prereqs with the tooling dependencies page
+* {intel-sgx} enabled in BIOS (Basic Input Output System) on at least one worker machines - specific steps depends on platform.
 * https://validatedpatterns.io/learn/quickstart/[Install the tooling dependencies].
-* Machine with the Ubuntu 22.4 (for conversion purposes - doesn't need to have SGX feature enabled) and git.
+* Machine with the Ubuntu 22.04 (for image conversion purposes - doesn't need to have SGX feature enabled) and git.
  ** Gramine Shielded Containers (GSC) application requires a machine with the same OS as an input image which will be conversed.
  ** Install the https://gramine.readthedocs.io/projects/gsc/en/latest/#prerequisites[GSC prerequisites].
 
@@ -36,7 +35,6 @@ public or private cloud by using https://console.redhat.com/openshift/create[Red
 
 . https://validatedpatterns.io/learn/quickstart/[Install the tooling dependencies].
 +
-//remember to give proper links!!!
 . Fork the https://github.com/validatedpatterns-sandbox/sgx-multicloud-gitops-hello-world/[multicloud-gitops-sgx-hello-world] repository on GitHub.
 . Clone the forked copy of this repository.
 +
